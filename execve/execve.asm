@@ -1,12 +1,14 @@
 sys_execve equ 59
 sys_exit equ 60
 sys_write equ 1
-
+sys_open equ 2
+sys_read equ 0
 
 global _start
 
 ; /bin/bash -c find / -iregex ".*\.\(xls\|csv\|pdf\|docx\)" -print0 2>>/dev/null 1>> output.txt 
 section .bss
+    buffer resb 20000
 section .data
 
     arg0 DB "/bin/bash", 0
@@ -15,8 +17,8 @@ section .data
     envp DQ 0
     
     argv DQ arg0, arg1, arg2, 0 
-    message DB "Hello Thomas!", 0x0A, 0
-    message_length equ $ - message
+    filename DB "output.txt",0
+    
     
 
 section .text
@@ -29,15 +31,24 @@ _start:
 ;syscall pour execve
     CMP EAX, 0
     JZ child_process
-    
+    Call parent_process
+
+
 parent_process:
 
-    MOV RAX, sys_write
-    MOV RDI, 1
-    MOV RSI, message
-    MOV RDX, message_length
+    MOV RAX, sys_open
+    MOV RDI, filename
+    MOV RSI, 0
     SYSCALL
-    call EXIT
+
+    MOV RDI, RAX
+    MOV RAX, sys_read
+    LEA RSI, buffer
+    MOV RDX, 20000
+    SYSCALL
+
+    CALL EXIT
+
 
 
 child_process:
