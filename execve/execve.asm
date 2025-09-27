@@ -9,8 +9,8 @@ global _start
 
 ; /bin/bash -c find / -iregex ".*\.\(xls\|csv\|pdf\|docx\)" -print0 2>>/dev/null 1>> output.txt 
 section .bss
-    buffer resb 20000
-    bufferfile resb 20000
+    buffer resb 900000
+    bufferfile resb 999999999
     status resq 1
 section .data
 
@@ -68,7 +68,7 @@ Read_path:
     MOV RDI, RAX
     MOV RAX, sys_read
     LEA RSI, bufferfile
-    MOV RDX, 20000
+    MOV RDX, 999999999
     SYSCALL
     CALL process_path
 
